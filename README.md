@@ -204,10 +204,10 @@ python detect.py --source Stop_data/test/images --weights runs/train/exp/weights
 
 5. pth -> onnx
 python export.py \
-  --weights runs/train/crosswalk-pedestrian7/weights/best.pt \
+  --weights runs/train/exp6/weights/best.pt \
   --include onnx \
   --opset 13 \
-  --imgsz 320
+  --imgsz 416
 
 6. (jetson nano) onnx -> tensorrt(engine)
 /usr/src/tensorrt/bin/trtexec --onnx=yolov5_crosswalk.onnx --saveEngine=yolov5_crosswalk.engine --workspace=2048 --fp16
