@@ -220,6 +220,7 @@ pip install ultralytics
 
 2. Train with YOLOv8
 
+yolo train model=yolov8n.pt data=/home/ndo-vale/Desktop/Team06/datasets/TT100K_yolo/data.yaml epochs=50 imgsz=416 batch=16 device=0 multi_scale=True
 yolo task=detect mode=train model=yolov8n.pt data=dataset.yaml epochs=100 imgsz=320 batch=16
 
 opcional - "device=0"
