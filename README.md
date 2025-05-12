@@ -231,7 +231,10 @@ yolo task=detect mode=val model=runs/detect/train/weights/best.pt data=dataset.y
 
 4. 
 
+yolo export model=runs/detect/train/weights/best.pt format=onnx imgsz=416 half=True simplify=True
+
 yolo export model=runs/detect/train/weights/best.pt format=engine
+
 
 
 
