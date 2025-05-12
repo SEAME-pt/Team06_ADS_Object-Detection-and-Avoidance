@@ -6,11 +6,11 @@ import cv2
 import time
 
 # Configurações
-MODEL_PATH = "../onnx_engine/stop_noEntry.engine"
+MODEL_PATH = "../onnx_engine/yv5n_416_tt100k_s_ww_ne.engine"
 INPUT_SIZE = (416, 416)
 CONF_THRES = 0.2  # Reduzido para capturar mais detecções
 IOU_THRES = 0.5
-CLASSES = ['NoEntry', 'stop-sign']
+CLASSES = ['NoEntry', 'Stop-sign', 'Pedestrian Crossing']
 
 # Função de escalonamento de caixas
 def scale_boxes(boxes, input_shape, original_shape):
