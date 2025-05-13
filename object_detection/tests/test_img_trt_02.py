@@ -96,7 +96,7 @@ def draw_boxes(image, boxes, scores, classes):
 
 def main():
     engine = load_engine(MODEL_PATH)
-    image = cv2.imread("../data_test/img02.jpg")
+    image = cv2.imread("../data_test/img05.jpg")
     if image is None:
         print("Erro ao carregar imagem")
         return
