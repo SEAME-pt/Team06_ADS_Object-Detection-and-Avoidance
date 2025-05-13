@@ -10,7 +10,7 @@ MODEL_PATH = "../onnx_engine/roboflow_002v5_320.engine"
 INPUT_SIZE = (320, 320)
 CONF_THRES = 0.2  # Reduzido para capturar mais detecções
 IOU_THRES = 0.5
-CLASSES = ['NoEntry', 'Stop-sign', 'Pedestrian Crossing']
+CLASSES = ['Stop', 'Zebra', 'crosswalk']
 
 # Função de escalonamento de caixas
 def scale_boxes(boxes, input_shape, original_shape):
@@ -155,7 +155,7 @@ def main():
         print("Erro ao abrir a câmera")
         return
     
-    skip_frame = 10
+    skip_frame = 2
     frame_count = 0
     
     while True:
