@@ -6,8 +6,8 @@ import cv2
 import time
 
 # Configurações
-MODEL_PATH = "../onnx_engine/yv5n_416_tt100k_s_ww_ne.engine"
-INPUT_SIZE = (416, 416)
+MODEL_PATH = "../onnx_engine/roboflow_002v5_320.engine"
+INPUT_SIZE = (320, 320)
 CONF_THRES = 0.2  # Reduzido para capturar mais detecções
 IOU_THRES = 0.5
 CLASSES = ['NoEntry', 'Stop-sign', 'Pedestrian Crossing']
@@ -155,7 +155,7 @@ def main():
         print("Erro ao abrir a câmera")
         return
     
-    skip_frame = 2
+    skip_frame = 10
     frame_count = 0
     
     while True:
