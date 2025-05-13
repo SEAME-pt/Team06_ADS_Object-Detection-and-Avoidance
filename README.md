@@ -203,15 +203,14 @@ python train.py \
 python detect.py --source Stop_data/test/images --weights runs/train/exp/weights/best.pt --img 320 --conf 0.4
 
 5. pth -> onnx
-python export.py \
-  --weights runs/train/exp6/weights/best.pt \
-  --include onnx \
-  --opset 13 \
-  --imgsz 416
+
+python export.py --weights runs/train/exp6/weights/best.pt --include onnx --opset 12 --imgsz 320 --simplify
 
 6. (jetson nano) onnx -> tensorrt(engine)
-/usr/src/tensorrt/bin/trtexec --onnx=yolov5_crosswalk.onnx --saveEngine=yolov5_crosswalk.engine --workspace=2048 --fp16
+/usr/src/tensorrt/bin/trtexec --onnx=yolov5_crosswalk.onnx --saveEngine=yolov5_crosswalk.engine --fp16
 
+7. test .engine
+/usr/src/tensorrt/bin/trtexec --loadEngine=yolov5_crosswalk.engine --dumpOutput
 
 ## Running YoloV8 with TensorRT Engine on Jetson
 1. Install YOLOv8 (Ultralytics)
