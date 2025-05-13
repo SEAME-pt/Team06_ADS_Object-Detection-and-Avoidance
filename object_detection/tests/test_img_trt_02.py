@@ -91,10 +91,11 @@ def draw_boxes(image, boxes, scores, classes):
 
 def main():
     engine = load_engine(MODEL_PATH)
-    image = cv2.imread("../data_test/img00.jpg")  # Substitua por uma imagem do dataset
+    image = cv2.imread("../data_test/img03.jpg")  # Substitua por uma imagem do dataset
     if image is None:
         print("Erro ao carregar imagem")
         return
+    image = cv2.resize(image, (320, 320), interpolation=cv2.INTER_LINEAR)
     original_shape = image.shape[:2]
     outputs = infer(engine, image)
     boxes, scores, class_ids = [], [], []
@@ -105,7 +106,7 @@ def main():
             class_scores = pred[5:5+len(CLASSES)]
             class_id = np.argmax(class_scores)
             class_score = class_scores[class_id]
-            if class_score * conf > CON F_THRES:
+            if class_score * conf > CONF_THRES:
                 boxes.append([x, y, w, h])
                 scores.append(conf * class_score)
                 class_ids.append(class_id)
