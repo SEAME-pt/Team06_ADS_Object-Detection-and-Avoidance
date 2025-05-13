@@ -93,7 +93,7 @@ def draw_boxes(image, boxes, scores, classes):
 
 def main():
     engine = load_engine(MODEL_PATH)
-    image = cv2.imread("../data_test/img03.jpg")  # Use uma imagem do dataset de validação
+    image = cv2.imread("../data_test/img04.jpg")  # Use uma imagem do dataset de validação
     if image is None:
         print("Erro ao carregar imagem")
         return
