@@ -4,7 +4,7 @@ import pycuda.driver as cuda
 import pycuda.autoinit
 import cv2
 
-MODEL_PATH = "../onnx_engine/roboflow002v5_320.engine"
+MODEL_PATH = "../onnx_engine/roboflow_002v5_320.engine"
 INPUT_SIZE = (320, 320)
 CONF_THRES = 0.05
 IOU_THRES = 0.5
@@ -96,7 +96,7 @@ def draw_boxes(image, boxes, scores, classes):
 
 def main():
     engine = load_engine(MODEL_PATH)
-    image = cv2.imread("../data_test/img03.jpg")
+    image = cv2.imread("../data_test/img02.jpg")
     if image is None:
         print("Erro ao carregar imagem")
         return
