@@ -6,7 +6,7 @@ import cv2
 import time
 
 # Configurações
-MODEL_PATH = "../onnx_engine/roboflow_000v8.engine"  # Ajuste para o caminho do modelo YOLOv8n
+MODEL_PATH = "../onnx_engine/roboflow_001v8_320.engine"  # Ajuste para o caminho do modelo YOLOv8n
 INPUT_SIZE = (320, 320)  # Tamanho de entrada (pode mudar para 640x640 se o Jetson Nano suportar)
 CONF_THRES = 0.2  # Limiar de confiança
 IOU_THRES = 0.5   # Limiar de NMS
