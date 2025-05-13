@@ -6,15 +6,12 @@ import cv2
 import time
 
 # Configurações
-MODEL_PATH = "../onnx_engine/stop_noEntry_speed_pedestrian.engine"  # Ajuste para o caminho do modelo YOLOv8n
+MODEL_PATH = "../onnx_engine/roboflow_000v8.engine"  # Ajuste para o caminho do modelo YOLOv8n
 INPUT_SIZE = (416, 416)  # Tamanho de entrada (pode mudar para 640x640 se o Jetson Nano suportar)
 CONF_THRES = 0.2  # Limiar de confiança
 IOU_THRES = 0.5   # Limiar de NMS
 CLASSES = [
-    'NoEntry', 'Stop Sign', 'Pedestrian Crossing',
-    'Speed Limit 5', 'Speed Limit 30', 'Speed Limit 40',
-    'Speed Limit 50', 'Speed Limit 60', 'Speed Limit 80',
-    'Speed Limit 100', 'Speed Limit 120'
+    'NoEntry', 'Stop Sign', 'Pedestrian Crossing'
 ]
 
 # Função de escalonamento de caixas
