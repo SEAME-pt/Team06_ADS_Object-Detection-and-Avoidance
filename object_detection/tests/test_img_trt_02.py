@@ -4,9 +4,9 @@ import pycuda.driver as cuda
 import pycuda.autoinit
 import cv2
 
-MODEL_PATH = "../onnx_engine/roboflow_002v5_320.engine"
+MODEL_PATH = "../onnx_engine/roboflow002v5_320.engine"
 INPUT_SIZE = (320, 320)
-CONF_THRES = 0.05  # Reduzido para teste
+CONF_THRES = 0.05
 IOU_THRES = 0.5
 CLASSES = ['NoEntry', 'Stop-sign', 'Pedestrian Crossing']
 
@@ -23,7 +23,7 @@ def letterbox(img, new_shape=(320, 320), color=(114, 114, 114)):
 
 def preprocess_image(image, input_size):
     img = letterbox(image, input_size)
-    cv2.imwrite("letterboxed_image.jpg", img)  # Salva para verificação
+    cv2.imwrite("letterboxed_image.jpg", img)
     img = img.astype(np.float32) / 255.0
     img = img.transpose(2, 0, 1)
     img = np.expand_dims(img, axis=0)
@@ -61,14 +61,17 @@ def infer(engine, image):
 
 def scale_boxes(boxes, input_shape, original_shape):
     gain = min(input_shape[0] / original_shape[0], input_shape[1] / original_shape[1])
-    pad_x = (input_shape[1] - original_shape[1] * gain) / 2
-    pad_y = (input_shape[0] - original_shape[0] * gain) / 2
+    new_h, new_w = int(original_shape[0] * gain), int(original_shape[1] * gain)
+    pad_h = (input_shape[0] - new_h) / 2
+    pad_w = (input_shape[1] - new_w) / 2
+    print(f"Gain: {gain}, New H: {new_h}, New W: {new_w}, Pad H: {pad_h}, Pad W: {pad_w}")
+
     scaled_boxes = boxes.copy()
     if len(boxes) > 0:
-        scaled_boxes[:, 0] = (boxes[:, 0] - pad_x) / gain  # x
-        scaled_boxes[:, 1] = (boxes[:, 1] - pad_y) / gain  # y
-        scaled_boxes[:, 2] = boxes[:, 2] / gain  # w
-        scaled_boxes[:, 3] = boxes[:, 3] / gain  # h
+        scaled_boxes[:, 0] = (boxes[:, 0] - pad_w) / gain  # x (centro)
+        scaled_boxes[:, 1] = (boxes[:, 1] - pad_h) / gain  # y (centro)
+        scaled_boxes[:, 2] = boxes[:, 2] / gain  # largura
+        scaled_boxes[:, 3] = boxes[:, 3] / gain  # altura
     return scaled_boxes
 
 def non_max_suppression(boxes, scores, conf_thres, iou_thres):
@@ -86,14 +89,14 @@ def draw_boxes(image, boxes, scores, classes):
         x2, y2 = int(x + w / 2), int(y + h / 2)
         x1, y1 = max(0, x1), max(0, y1)
         x2, y2 = min(image.shape[1], x2), min(image.shape[0], y2)
-        print(f"Detecção: [{x1}, {y1}, {x2}, {y2}], Classe: {class_name}, Score: {score:.2f}")
+        print(f"Detecção: [x1={x1}, y1={y1}, x2={x2}, y2={y2}], Classe: {class_name}, Score: {score:.2f}")
         cv2.rectangle(image, (x1, y1), (x2, y2), (0, 255, 0), 2)
         cv2.putText(image, f"{class_name}: {score:.2f}", (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
     return image
 
 def main():
     engine = load_engine(MODEL_PATH)
-    image = cv2.imread("../data_test/img04.jpg")  # Use uma imagem do dataset de validação
+    image = cv2.imread("../data_test/img03.jpg")
     if image is None:
         print("Erro ao carregar imagem")
         return
@@ -122,7 +125,7 @@ def main():
     print("Caixas após NMS:", boxes[indices] if len(indices) > 0 else [])
     if len(indices) > 0:
         image = draw_boxes(image, boxes[indices], scores[indices], class_ids[indices])
-    cv2.imwrite("output_image.jpg", image)  # Salva a imagem com caixas
+    cv2.imwrite("output_image.jpg", image)
     cv2.imshow("Resultado", image)
     cv2.waitKey(0)
     cv2.destroyAllWindows()
