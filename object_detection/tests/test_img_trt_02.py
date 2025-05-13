@@ -8,7 +8,7 @@ MODEL_PATH = "../onnx_engine/roboflow_002v5_320.engine"
 INPUT_SIZE = (320, 320)
 CONF_THRES = 0.05  # Reduzido para teste
 IOU_THRES = 0.5
-CLASSES = ['Stop', 'Zebra', 'crosswalk']
+CLASSES = ['NoEntry', 'Stop-sign', 'Pedestrian Crossing']
 
 def letterbox(img, new_shape=(320, 320), color=(114, 114, 114)):
     h, w = img.shape[:2]
@@ -23,6 +23,7 @@ def letterbox(img, new_shape=(320, 320), color=(114, 114, 114)):
 
 def preprocess_image(image, input_size):
     img = letterbox(image, input_size)
+    cv2.imwrite("letterboxed_image.jpg", img)  # Salva para verificação
     img = img.astype(np.float32) / 255.0
     img = img.transpose(2, 0, 1)
     img = np.expand_dims(img, axis=0)
@@ -53,6 +54,7 @@ def infer(engine, image):
     stream.synchronize()
     output = outputs[0]["host"]
     print("Saída bruta shape:", output.shape)
+    print("Primeiros valores da saída:", output[:10])
     output = output.reshape(1, -1, 5+len(CLASSES))
     print("Saída reshape shape:", output.shape)
     return output
@@ -91,12 +93,12 @@ def draw_boxes(image, boxes, scores, classes):
 
 def main():
     engine = load_engine(MODEL_PATH)
-    image = cv2.imread("../data_test/img03.jpg")  # Substitua por uma imagem do dataset
+    image = cv2.imread("../data_test/img03.jpg")  # Use uma imagem do dataset de validação
     if image is None:
         print("Erro ao carregar imagem")
         return
-    image = cv2.resize(image, (320, 320), interpolation=cv2.INTER_LINEAR)
     original_shape = image.shape[:2]
+    print("Tamanho original da imagem:", original_shape)
     outputs = infer(engine, image)
     boxes, scores, class_ids = [], [], []
     for pred in outputs[0]:
@@ -110,17 +112,17 @@ def main():
                 boxes.append([x, y, w, h])
                 scores.append(conf * class_score)
                 class_ids.append(class_id)
-    print("Caixas antes NMS:", len(boxes), boxes)
-    print("Scores:", scores)
-    print("Classes:", class_ids)
+    print("Caixas antes scale_boxes:", boxes)
     boxes = np.array(boxes) if boxes else np.empty((0, 4))
     scores = np.array(scores) if scores else np.empty((0,))
     class_ids = np.array(class_ids) if class_ids else np.empty((0,))
     boxes = scale_boxes(boxes, INPUT_SIZE, original_shape)
+    print("Caixas após scale_boxes:", boxes)
     indices = non_max_suppression(boxes, scores, CONF_THRES, IOU_THRES)
     print("Caixas após NMS:", boxes[indices] if len(indices) > 0 else [])
     if len(indices) > 0:
         image = draw_boxes(image, boxes[indices], scores[indices], class_ids[indices])
+    cv2.imwrite("output_image.jpg", image)  # Salva a imagem com caixas
     cv2.imshow("Resultado", image)
     cv2.waitKey(0)
     cv2.destroyAllWindows()
