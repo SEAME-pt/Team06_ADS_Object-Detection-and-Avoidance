@@ -6,11 +6,13 @@ import cv2
 import time
 
 # Configurações
-MODEL_PATH = "../onnx_engine/stop_noEntry.engine"
-INPUT_SIZE = (416, 416)
-CONF_THRES = 0.2  # Reduzido para capturar mais detecções
-IOU_THRES = 0.5
-CLASSES = ['NoEntry', 'stop-sign']
+MODEL_PATH = "../onnx_engine/roboflow_000v8.engine"  # Ajuste para o caminho do modelo YOLOv8n
+INPUT_SIZE = (320, 320)  # Tamanho de entrada (pode mudar para 640x640 se o Jetson Nano suportar)
+CONF_THRES = 0.2  # Limiar de confiança
+IOU_THRES = 0.5   # Limiar de NMS
+CLASSES = [
+    'Stop', 'Zebra', 'crosswalk'
+]
 
 # Função de escalonamento de caixas
 def scale_boxes(boxes, input_shape, original_shape):
@@ -51,7 +53,8 @@ def infer(engine, image):
     inputs, outputs, bindings, stream = [], [], [], cuda.Stream()
     
     for binding in engine:
-        size = trt.volume(engine.get_binding_shape(binding)) * engine.max_batch_size
+        shape = engine.get_binding_shape(binding)
+        size = trt.volume(shape) * engine.max_batch_size
         dtype = trt.nptype(engine.get_binding_dtype(binding))
         host_mem = cuda.pagelocked_empty(size, dtype)
         device_mem = cuda.mem_alloc(host_mem.nbytes)
@@ -69,9 +72,12 @@ def infer(engine, image):
     stream.synchronize()
     
     output = outputs[0]["host"]
-    print("Shape da saída bruta:", output.shape)
-    output = output.reshape(1, -1, 5+len(CLASSES))
-    print("Shape após reshape:", output.shape)
+    # YOLOv8n: Saída é [batch, num_classes + 4, num_boxes]
+    # Ex.: [1, 11+4, 8400] -> reshape para [1, 8400, 15]
+    num_classes = len(CLASSES)
+    num_boxes = output.size // (num_classes + 4)
+    output = output.reshape(1, num_classes + 4, num_boxes).transpose(0, 2, 1)
+    print("Shape da saída após reshape:", output.shape)
     return output
 
 # Desenhar caixas
@@ -97,7 +103,8 @@ def warm_up(engine, input_size):
     dummy_input = np.random.rand(1, 3, input_size[0], input_size[1]).astype(np.float32)
     inputs, outputs, bindings, stream = [], [], [], cuda.Stream()
     for binding in engine:
-        size = trt.volume(engine.get_binding_shape(binding)) * engine.max_batch_size
+        shape = engine.get_binding_shape(binding)
+        size = trt.volume(shape) * engine.max_batch_size
         dtype = trt.nptype(engine.get_binding_dtype(binding))
         host_mem = cuda.pagelocked_empty(size, dtype)
         device_mem = cuda.mem_alloc(host_mem.nbytes)
@@ -121,16 +128,14 @@ def main():
     # outputs = infer(engine, image)
     # boxes, scores, class_ids = [], [], []
     # for pred in outputs[0]:
-    #     conf = pred[4]
-    #     if conf > CONF_THRES:
+    #     class_scores = pred[4:4+len(CLASSES)]
+    #     max_score = np.max(class_scores)
+    #     if max_score > CONF_THRES:
     #         x, y, w, h = pred[0:4]
-    #         class_scores = pred[5:5+len(CLASSES)]
     #         class_id = np.argmax(class_scores)
-    #         class_score = class_scores[class_id]
-    #         if class_score * conf > CONF_THRES:
-    #             boxes.append([x, y, w, h])
-    #             scores.append(conf * class_score)
-    #             class_ids.append(class_id)
+    #         boxes.append([x, y, w, h])
+    #         scores.append(max_score)
+    #         class_ids.append(class_id)
     # print("Caixas antes do NMS:", len(boxes))
     # boxes = np.array(boxes) if boxes else np.empty((0, 4))
     # scores = np.array(scores) if scores else np.empty((0,))
@@ -139,7 +144,7 @@ def main():
     # indices = non_max_suppression(boxes, scores, CONF_THRES, IOU_THRES)
     # if len(indices) > 0:
     #     image = draw_boxes(image, boxes[indices], scores[indices], class_ids[indices])
-    # cv2.imshow("Resultado", image)
+    # cv2.imshow("YOLOv8n TensorRT", image)
     # cv2.waitKey(0)
     # cv2.destroyAllWindows()
     # return
@@ -155,7 +160,7 @@ def main():
         print("Erro ao abrir a câmera")
         return
     
-    skip_frame = 2
+    skip_frame = 10
     frame_count = 0
     
     while True:
@@ -166,7 +171,7 @@ def main():
         
         frame_count += 1
         if frame_count % skip_frame != 0:
-            cv2.imshow("YOLOv5 TensorRT", frame)
+            cv2.imshow("YOLOv8n TensorRT", frame)
             if cv2.waitKey(1) & 0xFF == ord("q"):
                 break
             continue
@@ -177,16 +182,14 @@ def main():
         
         boxes, scores, class_ids = [], [], []
         for pred in outputs[0]:
-            conf = pred[4]
-            if conf > CONF_THRES:
+            class_scores = pred[4:4+len(CLASSES)]
+            max_score = np.max(class_scores)
+            if max_score > CONF_THRES:
                 x, y, w, h = pred[0:4]
-                class_scores = pred[5:5+len(CLASSES)]
                 class_id = np.argmax(class_scores)
-                class_score = class_scores[class_id]
-                if class_score * conf > CONF_THRES:
-                    boxes.append([x, y, w, h])
-                    scores.append(conf * class_score)
-                    class_ids.append(class_id)
+                boxes.append([x, y, w, h])
+                scores.append(max_score)
+                class_ids.append(class_id)
         
         print("Caixas antes do NMS:", len(boxes))
         boxes = np.array(boxes) if boxes else np.empty((0, 4))
@@ -201,7 +204,7 @@ def main():
         fps = 1.0 / (time.time() - start_time)
         cv2.putText(frame, f"FPS: {fps:.2f}", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
         
-        cv2.imshow("YOLOv5 TensorRT", frame)
+        cv2.imshow("YOLOv8n TensorRT", frame)
         if cv2.waitKey(1) & 0xFF == ord("q"):
             break
     
