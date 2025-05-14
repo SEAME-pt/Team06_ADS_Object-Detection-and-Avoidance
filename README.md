@@ -1,5 +1,7 @@
 # Team06-ADS_Autonomous-Lane-Detection
 
+### sshfs team06@10.21.221.56: ~/jetson
+
 instalar o NumPy, PyCUDA e OpenCV com suporte a CUDA no Jetson Nano. O Jetson Nano usa uma versão do Ubuntu (geralmente 18.04 com JetPack) e possui uma GPU NVIDIA, então precisamos garantir que as instalações sejam compatíveis com a arquitetura aarch64 e o ambiente CUDA. Vou assumir que você tem o JetPack instalado (recomendo a versão 4.6.x para suporte estável) e está usando Python 3.6 ou 3.8, que são comuns no Jetson Nano.
 
 ### Pré-requisitos

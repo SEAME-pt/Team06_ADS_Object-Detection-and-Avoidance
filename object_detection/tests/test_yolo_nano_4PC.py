@@ -8,8 +8,8 @@ import time
 print(trt.__version__)
 
 # Configurações
-MODEL_PATH = "../onnx_engine/stop_noEntry_pc.engine"  # Ajuste para o nome do seu arquivo TensorRT
-INPUT_SIZE = (416, 416)  # Tamanho de entrada (deve corresponder ao treinamento/exportação)
+MODEL_PATH = "../onnx_engine/roboflow_003v5_320.engine"  # Ajuste para o nome do seu arquivo TensorRT
+INPUT_SIZE = (320, 320)  # Tamanho de entrada (deve corresponder ao treinamento/exportação)
 CONF_THRES = 0.4  # Limiar de confiança
 IOU_THRES = 0.5  # Limiar de IoU para NMS
 CLASSES = ['NoEntry', 'stop-sign'] 
@@ -132,7 +132,7 @@ def main():
         print("Erro ao abrir a câmera")
         return
 
-    skip_frame = 10  # Processar 1 a cada 2 frames para maior FPS
+    skip_frame = 2  # Processar 1 a cada 2 frames para maior FPS
     frame_count = 0
 
     while True:

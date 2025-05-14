@@ -16,7 +16,7 @@ TRAIN_SPLIT = 0.8  # Proporção para treino (80% train, 20% valid do train2017)
 # Classes desejadas
 TARGET_CLASSES = [
     "person", "bicycle", "car", "motorcycle", "airplane",
-    "bus", "train", "truck", "boat"
+    "bus", "train", "truck", "stop sign"
 ]
 CLASS_MAP = {name: idx for idx, name in enumerate(TARGET_CLASSES)}
 
