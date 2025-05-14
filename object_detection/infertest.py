@@ -3,12 +3,9 @@ import numpy as np
 import tensorrt as trt
 import pycuda.driver as cuda
 import pycuda.autoinit
-from ctypes import c_size_t
 
 # CONFIG
 model_path = "./engine/od_v3_416_nano.trt"  # Caminho do modelo TensorRT
-video_path = ""  # "" para webcam ou caminho para vídeo
-#output_path = "resultados_video_trt.mp4"  # Caminho para salvar o vídeo processado
 class_names = ['NoEntry', 'stop-sign']
 conf_threshold = 0.5
 iou_threshold = 0.5
@@ -36,36 +33,26 @@ def non_max_suppression(boxes, scores, iou_threshold):
     return keep
 
 # INFERÊNCIA
-def process_frame(frame, engine):
+def process_frame(frame, engine, context, d_input, d_output, output_shape):
     h0, w0 = frame.shape[:2]
 
     # Pré-processamento
     img = cv2.resize(frame, (img_size, img_size))
     img_input = cv2.cvtColor(img, cv2.COLOR_BGR2RGB).astype(np.float32) / 255.0
     img_input = np.transpose(img_input, (2, 0, 1))[None]  # (1, 3, 416, 416)
-    # Garantir que o array seja contíguo
     img_input = np.ascontiguousarray(img_input)
 
-    # Inferência TensorRT
-    context = engine.create_execution_context()
-    with engine.create_execution_context() as context:
-        # Alocar memória para entrada e saída
-        input_shape = (1, 3, img_size, img_size)
-        output_shape = (1, 25200, 7)  # [num_boxes, x1, y1, x2, y2, conf, cls]
-        d_input = cuda.mem_alloc(c_size_t(img_input.nbytes).value)
-        d_output = cuda.mem_alloc(c_size_t(np.prod(output_shape) * 4).value)
+    # Transferir dados para a GPU
+    cuda.memcpy_htod(d_input, img_input)
+    bindings = [int(d_input), int(d_output)]
+    context.execute_v2(bindings)
 
-        # Transferir dados para a GPU
-        cuda.memcpy_htod(d_input, img_input)
-        bindings = [int(d_input), int(d_output)]
-        context.execute_v2(bindings)
+    # Transferir resultados da GPU para CPU
+    output = np.zeros(output_shape, dtype=np.float32)
+    cuda.memcpy_dtoh(output, d_output)
 
-        # Transferir resultados da GPU para CPU
-        output = np.zeros(output_shape, dtype=np.float32)
-        cuda.memcpy_dtoh(output, d_output)
     # Pós-processamento
     boxes, scores, class_ids = [], [], []
-
     scale_x = w0 / img_size
     scale_y = h0 / img_size
 
@@ -77,7 +64,6 @@ def process_frame(frame, engine):
         if cls >= len(class_names):
             continue
 
-        # Escalar para as dimensões originais do frame
         x1 = (xc - w / 2) * scale_x
         y1 = (yc - h / 2) * scale_y
         x2 = (xc + w / 2) * scale_x
@@ -108,9 +94,17 @@ with open(model_path, "rb") as f:
     runtime = trt.Runtime(trt.Logger(trt.Logger.WARNING))
     engine = runtime.deserialize_cuda_engine(f.read())
 
-# Configurar entrada de vídeo
-#cap = cv2.VideoCapture(0 if video_path == "" else video_path)
+# Criar contexto TensorRT uma vez
+context = engine.create_execution_context()
 
+# Alocar memória CUDA uma vez
+input_shape = (1, 3, img_size, img_size)
+output_shape = (1, 25200, 7)  # [num_boxes, x1, y1, x2, y2, conf, cls]
+img_input = np.zeros(input_shape, dtype=np.float32)
+d_input = cuda.mem_alloc(img_input.nbytes)
+d_output = cuda.mem_alloc(np.prod(output_shape) * 4)
+
+# Configurar entrada de vídeo com pipeline GStreamer
 cap = cv2.VideoCapture(
     "nvarguscamerasrc sensor-mode=4 ! video/x-raw(memory:NVMM), width=1280, height=720, format=NV12, framerate=30/1 ! "
     "nvvidconv ! video/x-raw, width=416, height=416, format=BGRx ! videoconvert ! video/x-raw, format=BGR ! appsink",
@@ -119,48 +113,47 @@ cap = cv2.VideoCapture(
 
 # Verificar se a captura foi aberta
 if not cap.isOpened():
-    print("Erro: Não foi possível abrir o vídeo ou webcam.")
-    print("1. Verifique se a webcam está conectada ou o caminho do vídeo está correto.")
-    print("2. Para webcam, tente outro índice (ex.: 1 ou 2).")
+    print("Erro: Não foi possível abrir a câmera.")
     exit()
 
-# Configurar saída de vídeo (se for vídeo)
-#if video_path:
-#    frame_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-#    frame_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-#    fps = int(cap.get(cv2.CAP_PROP_FPS))
-#    out = cv2.VideoWriter(output_path, cv2.VideoWriter_fourcc(*"mp4v"), fps, (frame_width, frame_height))
-#else:
-#    out = None
+# Inicializar máscara
 ret, mask = cap.read()
+if not ret:
+    print("Erro: Não foi possível ler o primeiro frame.")
+    cap.release()
+    exit()
+
 # Processar frames
-while True:
-    ret, frame = cap.read()
-    if not ret:
-        break
+try:
+    while True:
+        ret, frame = cap.read()
+        if not ret:
+            print("Erro: Falha ao capturar frame.")
+            break
 
-    key = cv2.waitKey(1) & 0xFF 
+        key = cv2.waitKey(1) & 0xFF
 
-    if key == ord("c"):
-        mask = process_frame(frame, engine)
-        print("CAP")
+        if key == ord("c"):
+            mask = process_frame(frame, engine, context, d_input, d_output, output_shape)
+            print("CAP")
 
-    # Exibir frame
-    cv2.imshow("Detections", frame)
-    cv2.imshow("Object", mask)
+        # Exibir frames
+        cv2.imshow("Detections", frame)
+        cv2.imshow("Object", mask)
 
-    # Salvar frame no vídeo de saída (se aplicável)
-    #if out:
-    #    out.write(frame)
+        # Sair com 'q'
+        if key == ord("q"):
+            break
 
-    # Sair com 'q'
-    if key == ord("q"):
-        break
+except KeyboardInterrupt:
+    print("Processamento interrompido pelo usuário.")
 
-# Liberar recursos
-cap.release()
-#if out:
-#    out.release()
-cv2.destroyAllWindows()
-
-#print(f"Processamento concluído. Resultados salvos em: {output_path if video_path else 'Webcam'}")
+finally:
+    # Liberar recursos
+    cap.release()
+    cv2.destroyAllWindows()
+    d_input.free()
+    d_output.free()
+    del context
+    del engine
+    print("Recursos liberados.")
