@@ -94,20 +94,23 @@ with open(model_path, "rb") as f:
     runtime = trt.Runtime(trt.Logger(trt.Logger.WARNING))
     engine = runtime.deserialize_cuda_engine(f.read())
 
-# Criar contexto TensorRT uma vez
+# Criar contexto TensorRT
 context = engine.create_execution_context()
 
-# Alocar memória CUDA uma vez
+# Alocar memória CUDA
 input_shape = (1, 3, img_size, img_size)
 output_shape = (1, 25200, 7)  # [num_boxes, x1, y1, x2, y2, conf, cls]
 img_input = np.zeros(input_shape, dtype=np.float32)
 d_input = cuda.mem_alloc(img_input.nbytes)
-d_output = cuda.mem_alloc(np.prod(output_shape) * 4)
+# Converter explicitamente para int Python
+output_size_bytes = int(np.prod(output_shape) * np.dtype(np.float32).itemsize)
+d_output = cuda.mem_alloc(output_size_bytes)
 
 # Configurar entrada de vídeo com pipeline GStreamer
 cap = cv2.VideoCapture(
     "nvarguscamerasrc sensor-mode=4 ! video/x-raw(memory:NVMM), width=1280, height=720, format=NV12, framerate=30/1 ! "
-    "nvvidconv ! video/x-raw, width=416, height=416, format=BGRx ! videoconvert ! video/x-raw, format=BGR ! appsink",
+    "nvvidconv ! video/x-raw, width=416, height=416, format=BGRx ! videoconvert ! video/x-raw, format=BGR ! "
+    "appsink sync=false drop=true",
     cv2.CAP_GSTREAMER
 )
 
