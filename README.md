@@ -234,7 +234,7 @@ yolo task=detect mode=val model=runs/detect/train/weights/best.pt data=dataset.y
 
 yolo export model=runs/detect/train/weights/best.pt format=onnx imgsz=416 half=True simplify=True
 
-/usr/src/tensorrt/bin/trtexec --onnx=/home/ndo-vale/onnx_engine/roboflow_001v8_320.onnx --saveEngine=/home/ndo-vale/onnx_engine/roboflow_001v8_320.engine --fp16
+/usr/src/tensorrt/bin/trtexec --onnx=/home/ndo-vale/onnx_engine/yolov8n_256_ttkv2.onnx --saveEngine=/home/ndo-vale/onnx_engine/yolov8n_256_ttkv2.engine --fp16
 
 
 

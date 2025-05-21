@@ -5,11 +5,11 @@ import pycuda.driver as cuda
 import pycuda.autoinit
 
 # CONFIG
-model_path = "./engine/od_v3_416_nano.engine"  # Caminho do modelo TensorRT
+model_path = "./engine/yolov8n_256_ttkv2.engine"  # Caminho do modelo TensorRT
 class_names = ['NoEntry', 'Stop', 'crosswalk']
-conf_threshold = 0.7
+conf_threshold = 0.3  # Reduzido para depuração
 iou_threshold = 0.5
-img_size = 416
+img_size = 256
 
 # NMS
 def non_max_suppression(boxes, scores, iou_threshold):
@@ -39,7 +39,7 @@ def process_frame(frame, engine, context, d_input, d_output, output_shape):
     # Pré-processamento
     img = cv2.resize(frame, (img_size, img_size))
     img_input = cv2.cvtColor(img, cv2.COLOR_BGR2RGB).astype(np.float32) / 255.0
-    img_input = np.transpose(img_input, (2, 0, 1))[None]  # (1, 3, 416, 416)
+    img_input = np.transpose(img_input, (2, 0, 1))[None]  # (1, 3, 256, 256)
     img_input = np.ascontiguousarray(img_input)
 
     # Transferir dados para a GPU
@@ -51,29 +51,38 @@ def process_frame(frame, engine, context, d_input, d_output, output_shape):
     output = np.zeros(output_shape, dtype=np.float32)
     cuda.memcpy_dtoh(output, d_output)
 
-    # Pós-processamento
+    # Depuração: Imprimir formato da saída
+    print(f"Formato da saída: {output.shape}, Máximo conf: {np.max(output[:, 4, :]) if output.size > 0 else 'N/A'}")
+
+    # Pós-processamento para YOLOv8
     boxes, scores, class_ids = [], [], []
     scale_x = w0 / img_size
     scale_y = h0 / img_size
 
-    for det in output[0]:
-        xc, yc, w, h, conf, *cls_scores = det
+    # YOLOv8 output: [1, 4+1+num_classes, num_detections] (e.g., [1, 8, 8400] para 3 classes)
+    output = output[0].T  # Transpose para [num_detections, 4+1+num_classes]
+    for det in output:
+        if len(det) < 8:  # Verificar se a saída tem o tamanho esperado
+            continue
+        x, y, w, h, conf, *cls_scores = det[:8]  # Limitar a 8 elementos (4+1+3)
         if conf < conf_threshold:
             continue
         cls = np.argmax(cls_scores)
         if cls >= len(class_names):
             continue
 
-        x1 = (xc - w / 2) * scale_x
-        y1 = (yc - h / 2) * scale_y
-        x2 = (xc + w / 2) * scale_x
-        y2 = (yc + h / 2) * scale_y
+        # Converter coordenadas baseadas no centro para cantos
+        x1 = (x - w / 2) * scale_x
+        y1 = (y - h / 2) * scale_y
+        x2 = (x + w / 2) * scale_x
+        y2 = (y + h / 2) * scale_y
 
         boxes.append([x1, y1, x2, y2])
         scores.append(conf)
         class_ids.append(cls)
 
     if not boxes:
+        print("Nenhuma detecção após pós-processamento.")
         return frame
 
     boxes = np.array(boxes)
@@ -99,10 +108,9 @@ context = engine.create_execution_context()
 
 # Alocar memória CUDA
 input_shape = (1, 3, img_size, img_size)
-output_shape = (1, 25200, 7)  # [num_boxes, x1, y1, x2, y2, conf, cls]
+output_shape = (1, 8, 8400)  # [1, 4+1+3, num_detections] (ajuste se necessário)
 img_input = np.zeros(input_shape, dtype=np.float32)
 d_input = cuda.mem_alloc(img_input.nbytes)
-# Converter explicitamente para int Python
 output_size_bytes = int(np.prod(output_shape) * np.dtype(np.float32).itemsize)
 d_output = cuda.mem_alloc(output_size_bytes)
 
