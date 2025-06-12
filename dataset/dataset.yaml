@@ -1,0 +1,15 @@
+path: /home/djoker/code/yolo/dataset
+train: images/train
+val: images/val
+nc: 10
+names:
+  0: STOP
+  1: PASSAGEM
+  2: VEL_50
+  3: VEL_80
+  4: SEMAFORO_VERMELHO
+  5: SEMAFORO_VERDE
+  6: SEMAFORO_LARANJA
+  7: PASSADEIRA
+  8: DANGER
+  9: CURVA
