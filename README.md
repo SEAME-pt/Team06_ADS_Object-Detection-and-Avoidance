@@ -1,5 +1,9 @@
 # YOLO11 TensorRT Runtime — Jetson/PC
 
+
+![CI](https://github.com/SEAME-pt/Team06_ADS_Object-Detection-and-Avoidance/actions/workflows/ci.yml/badge.svg?branch=signals_detection)
+
+
 > Real‑time object/sign detection with **TensorRT** (+ PyCUDA) and OpenCV. Includes an FPS‑aware camera loop with optional **frame‑skipping strategies** for stable performance on embedded GPUs.
 
 Core files:

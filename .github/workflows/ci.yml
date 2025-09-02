@@ -1,0 +1,31 @@
+on:
+  push:
+    branches: ['**']   # corre em todos os branches
+  pull_request:
+    branches: ['**']
+  workflow_dispatch: {}   # permite arrancar manualmente no separador Actions
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      PYTHONPATH: ${{ github.workspace }}   # para importar módulos no root
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install test dependencies (CPU-only)
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest pyyaml numpy opencv-python-headless
+
+      - name: Run tests
+        run: pytest -q --maxfail=1 --disable-warnings

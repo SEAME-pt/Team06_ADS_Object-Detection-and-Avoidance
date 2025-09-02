@@ -1,0 +1,17 @@
+# dataset.yaml
+path: /home/djoker/code/yolo2/dataset  # caminho absoluto ou relativo para a pasta raiz do dataset
+train: images/train  # caminho relativo para imagens de treino
+val: images/val      # caminho relativo para imagens de validação
+nc: 10
+names:
+  0: STOP
+  1: PASSAGEM
+  2: VEL_50
+  3: VEL_80
+  4: SEMAFORO_VERMELHO
+  5: SEMAFORO_VERDE
+  6: SEMAFORO_LARANJA
+  7: PASSADEIRA
+  8: DANGER
+  9: CURVA
+
