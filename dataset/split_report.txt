@@ -1,0 +1,36 @@
+RELATÓRIO DE DIVISÃO DO DATASET YOLO
+==================================================
+
+Dataset original: Dataset
+Dataset dividido: dataset
+Proporção Train/Val: 80.0%/20.0%
+Seed aleatória: 42
+
+ESTATÍSTICAS GERAIS:
+------------------------------
+Total de imagens: 972
+Imagens de treinamento: 775
+Imagens de validação: 198
+
+DISTRIBUIÇÃO POR CLASSE:
+--------------------------------------------------
+Classe               Train    Val      Total   
+--------------------------------------------------
+STOP                 75       19       94      
+PASSAGEM             98       25       123     
+VEL_50               74       19       93      
+VEL_80               68       17       85      
+SEMAFORO_VERMELHO    77       20       97      
+SEMAFORO_VERDE       82       22       104     
+SEMAFORO_LARANJA     77       19       96      
+PASSADEIRA           90       23       113     
+DANGER               64       17       81      
+CURVA                74       19       93      
+
+IMAGENS SEM LABELS:
+------------------------------
+Dataset/dataset_analysis.png
+
+LABELS SEM IMAGENS:
+------------------------------
+Dataset/dataset_report.txt
